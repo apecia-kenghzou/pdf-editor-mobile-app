@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <!-- Toolbar -->
+    <LinearLayout
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="8dp"
+        android:background="@android:color/darker_gray">
+
+        <Button
+            android:id="@+id/btnAddText"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Add Text"
+            android:textSize="12sp" />
+
+        <Button
+            android:id="@+id/btnAddSignature"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Signature"
+            android:textSize="12sp" />
+
+        <Button
+            android:id="@+id/btnRemovePage"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Remove Page"
+            android:textSize="12sp" />
+
+        <Button
+            android:id="@+id/btnSave"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Save"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <!-- PDF Viewer/Editor Area -->
+    <FrameLayout
+        android:id="@+id/pdfContainer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@id/toolbar"
+        android:layout_above="@id/bottomToolbar"
+        android:background="#FFFFFF">
+
+        <com.pdfeditor.PdfEditorView
+            android:id="@+id/pdfEditorView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+    </FrameLayout>
+
+    <!-- Bottom Toolbar -->
+    <LinearLayout
+        android:id="@+id/bottomToolbar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="8dp"
+        android:background="@android:color/darker_gray"
+        android:layout_alignParentBottom="true">
+
+        <Button
+            android:id="@+id/btnPrevPage"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Previous" />
+
+        <TextView
+            android:id="@+id/tvPageNumber"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="1 / 1"
+            android:gravity="center"
+            android:textSize="16sp"
+            android:textColor="#FFFFFF" />
+
+        <Button
+            android:id="@+id/btnNextPage"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Next" />
+    </LinearLayout>
+
+</RelativeLayout>

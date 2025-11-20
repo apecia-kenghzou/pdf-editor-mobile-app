@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:padding="16dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="PDF Editor"
+        android:textSize="32sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="32dp" />
+
+    <Button
+        android:id="@+id/btnSelectPdf"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Select PDF to Edit"
+        android:textSize="18sp"
+        android:padding="16dp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Features:"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:layout_marginTop="32dp"
+        android:layout_marginBottom="16dp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="• Add and edit text\n• Move text around\n• Change font size and type\n• Draw and save signatures\n• Remove pages\n• Save to new PDF"
+        android:textSize="16sp"
+        android:lineSpacingExtra="4dp" />
+
+</LinearLayout>

@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Text Content"
+        android:textStyle="bold" />
+
+    <EditText
+        android:id="@+id/etTextContent"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Enter text"
+        android:layout_marginBottom="16dp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Font Size"
+        android:textStyle="bold" />
+
+    <SeekBar
+        android:id="@+id/seekBarFontSize"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:max="60"
+        android:progress="12"
+        android:layout_marginBottom="8dp" />
+
+    <TextView
+        android:id="@+id/tvFontSize"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="12 pt"
+        android:layout_marginBottom="16dp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Font Type"
+        android:textStyle="bold" />
+
+    <Spinner
+        android:id="@+id/spinnerFontType"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btnCancel"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Cancel"
+            android:layout_marginEnd="8dp" />
+
+        <Button
+            android:id="@+id/btnOk"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="OK" />
+    </LinearLayout>
+
+</LinearLayout>
