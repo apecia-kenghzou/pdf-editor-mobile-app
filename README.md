@@ -66,27 +66,36 @@ android/
 ### Setup Instructions
 
 1. **Prerequisites**:
-   - Android Studio Arctic Fox or later
-   - JDK 8 or higher
+   - Android Studio Hedgehog (2023.1.1) or later
+   - JDK 17 or higher (required for Gradle 8.0)
    - Android SDK with API 24+
 
-2. **Build the App**:
+2. **Open in Android Studio** (RECOMMENDED):
+   - Launch Android Studio
+   - File → Open → Select the `android` folder
+   - Wait for Gradle sync to complete (this will download dependencies)
+   - Click the green ▶️ Run button
+   - Select your device/emulator
+
+3. **Command Line Build** (Alternative):
    ```bash
    cd android
+   # First time: Gradle will download wrapper automatically
    ./gradlew build
    ```
-
-3. **Run on Emulator/Device**:
-   - Open the `android` folder in Android Studio
-   - Click "Run" or press Shift + F10
-   - Select your target device/emulator
 
 4. **Generate APK**:
    ```bash
    cd android
-   ./gradlew assembleRelease
+   ./gradlew assembleDebug
    ```
-   The APK will be available at: `android/app/build/outputs/apk/release/`
+   The APK will be available at: `android/app/build/outputs/apk/debug/app-debug.apk`
+
+5. **Install on Device**:
+   ```bash
+   cd android
+   ./gradlew installDebug
+   ```
 
 ### Permissions
 
