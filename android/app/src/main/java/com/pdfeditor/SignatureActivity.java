@@ -12,11 +12,14 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.List;
 
 public class SignatureActivity extends AppCompatActivity {
 
-    public static final String EXTRA_SIGNATURE = "signature";
+    public static final String EXTRA_SIGNATURE_PATH = "signature_path";
 
     private SignatureView signatureView;
     private SignatureManager signatureManager;
@@ -61,10 +64,15 @@ public class SignatureActivity extends AppCompatActivity {
         btnUseSignature.setOnClickListener(v -> {
             if (!signatureView.isEmpty()) {
                 Bitmap signature = signatureView.getSignatureBitmap();
-                Intent resultIntent = new Intent();
-                resultIntent.putExtra(EXTRA_SIGNATURE, signature);
-                setResult(Activity.RESULT_OK, resultIntent);
-                finish();
+                String path = saveTempSignature(signature);
+                if (path != null) {
+                    Intent resultIntent = new Intent();
+                    resultIntent.putExtra(EXTRA_SIGNATURE_PATH, path);
+                    setResult(Activity.RESULT_OK, resultIntent);
+                    finish();
+                } else {
+                    Toast.makeText(this, "Failed to save signature", Toast.LENGTH_SHORT).show();
+                }
             } else {
                 Toast.makeText(this, "Please draw a signature first", Toast.LENGTH_SHORT).show();
             }
@@ -74,11 +82,29 @@ public class SignatureActivity extends AppCompatActivity {
     private void loadSavedSignatures() {
         List<Bitmap> signatures = signatureManager.getSavedSignatures();
         adapter = new SavedSignaturesAdapter(signatures, bitmap -> {
-            Intent resultIntent = new Intent();
-            resultIntent.putExtra(EXTRA_SIGNATURE, bitmap);
-            setResult(Activity.RESULT_OK, resultIntent);
-            finish();
+            String path = saveTempSignature(bitmap);
+            if (path != null) {
+                Intent resultIntent = new Intent();
+                resultIntent.putExtra(EXTRA_SIGNATURE_PATH, path);
+                setResult(Activity.RESULT_OK, resultIntent);
+                finish();
+            } else {
+                Toast.makeText(this, "Failed to load signature", Toast.LENGTH_SHORT).show();
+            }
         });
         savedSignaturesList.setAdapter(adapter);
+    }
+
+    private String saveTempSignature(Bitmap bitmap) {
+        try {
+            File tempFile = new File(getCacheDir(), "temp_signature.png");
+            FileOutputStream fos = new FileOutputStream(tempFile);
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, fos);
+            fos.close();
+            return tempFile.getAbsolutePath();
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 }

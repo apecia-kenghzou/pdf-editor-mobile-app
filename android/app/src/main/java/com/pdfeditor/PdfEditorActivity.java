@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.pdf.PdfRenderer;
 import android.net.Uri;
 import android.os.Bundle;
@@ -83,9 +84,12 @@ public class PdfEditorActivity extends AppCompatActivity {
                 new ActivityResultContracts.StartActivityForResult(),
                 result -> {
                     if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
-                        Bitmap signature = result.getData().getParcelableExtra(SignatureActivity.EXTRA_SIGNATURE);
-                        if (signature != null) {
-                            addSignatureToPage(signature);
+                        String signaturePath = result.getData().getStringExtra(SignatureActivity.EXTRA_SIGNATURE_PATH);
+                        if (signaturePath != null) {
+                            Bitmap signature = BitmapFactory.decodeFile(signaturePath);
+                            if (signature != null) {
+                                addSignatureToPage(signature);
+                            }
                         }
                     }
                 });

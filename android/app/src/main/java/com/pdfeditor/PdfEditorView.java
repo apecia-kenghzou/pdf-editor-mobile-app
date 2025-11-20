@@ -55,19 +55,31 @@ public class PdfEditorView extends View {
         currentPageIndex = pageIndex;
         currentPage = pdfRenderer.openPage(pageIndex);
 
-        int width = getWidth();
-        int height = getHeight();
+        int viewWidth = getWidth();
+        int viewHeight = getHeight();
 
-        if (width == 0 || height == 0) {
-            width = currentPage.getWidth() * 2;
-            height = currentPage.getHeight() * 2;
+        // If view not measured yet, use page dimensions
+        if (viewWidth == 0 || viewHeight == 0) {
+            viewWidth = currentPage.getWidth() * 2;
+            viewHeight = currentPage.getHeight() * 2;
         }
 
-        pageBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+        // Calculate scale to fit the page to view width
+        float pageWidth = currentPage.getWidth();
+        float pageHeight = currentPage.getHeight();
+        float scale = viewWidth / pageWidth;
+
+        int bitmapWidth = viewWidth;
+        int bitmapHeight = (int) (pageHeight * scale);
+
+        pageBitmap = Bitmap.createBitmap(bitmapWidth, bitmapHeight, Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(pageBitmap);
         canvas.drawColor(Color.WHITE);
 
         currentPage.render(pageBitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY);
+
+        // Request layout to adjust view size
+        requestLayout();
         invalidate();
     }
 
@@ -101,6 +113,18 @@ public class PdfEditorView extends View {
         textElements.clear();
         signatureElements.clear();
         invalidate();
+    }
+
+    @Override
+    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+
+        // Set minimum height to fit the PDF bitmap
+        if (pageBitmap != null) {
+            int width = MeasureSpec.getSize(widthMeasureSpec);
+            int height = pageBitmap.getHeight();
+            setMeasuredDimension(width, height);
+        }
     }
 
     @Override

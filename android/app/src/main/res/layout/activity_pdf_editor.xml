@@ -46,7 +46,7 @@
     </LinearLayout>
 
     <!-- PDF Viewer/Editor Area -->
-    <FrameLayout
+    <ScrollView
         android:id="@+id/pdfContainer"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -57,8 +57,8 @@
         <com.pdfeditor.PdfEditorView
             android:id="@+id/pdfEditorView"
             android:layout_width="match_parent"
-            android:layout_height="match_parent" />
-    </FrameLayout>
+            android:layout_height="wrap_content" />
+    </ScrollView>
 
     <!-- Bottom Toolbar -->
     <LinearLayout
