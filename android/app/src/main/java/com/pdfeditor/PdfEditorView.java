@@ -330,6 +330,18 @@ public class PdfEditorView extends View {
         }
     }
 
+    public float getPdfOffsetX() {
+        return pdfOffsetX;
+    }
+
+    public float getPdfOffsetY() {
+        return pdfOffsetY;
+    }
+
+    public float getPdfScale() {
+        return pdfScale;
+    }
+
     public void cleanup() {
         if (currentPage != null) {
             currentPage.close();

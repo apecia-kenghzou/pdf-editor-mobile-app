@@ -424,6 +424,11 @@ public class PdfEditorActivity extends AppCompatActivity implements PdfEditorVie
                     }
                 }
 
+                // Get PDF positioning info for coordinate conversion
+                float pdfOffsetX = pdfEditorView.getPdfOffsetX();
+                float pdfOffsetY = pdfEditorView.getPdfOffsetY();
+                float pdfScale = pdfEditorView.getPdfScale();
+
                 // Add overlays to each page
                 for (int i = 0; i < document.getNumberOfPages(); i++) {
                     PDPage page = document.getPage(i);
@@ -441,9 +446,12 @@ public class PdfEditorActivity extends AppCompatActivity implements PdfEditorVie
                             PDFont font = getFont(element.getFontType());
                             contentStream.beginText();
                             contentStream.setFont(font, element.getFontSize());
-                            // Convert Android coordinates to PDF coordinates
-                            float pdfY = pageHeight - element.getY();
-                            contentStream.newLineAtOffset(element.getX(), pdfY);
+
+                            // Convert screen coordinates to PDF coordinates
+                            float pdfX = (element.getX() - pdfOffsetX) / pdfScale;
+                            float pdfY = pageHeight - ((element.getY() - pdfOffsetY) / pdfScale);
+
+                            contentStream.newLineAtOffset(pdfX, pdfY);
                             contentStream.showText(element.getText());
                             contentStream.endText();
                         }
@@ -455,10 +463,14 @@ public class PdfEditorActivity extends AppCompatActivity implements PdfEditorVie
                         for (SignatureElement element : signatureElements) {
                             Bitmap bitmap = element.getSignatureBitmap();
                             PDImageXObject image = LosslessFactory.createFromImage(document, bitmap);
-                            // Convert Android coordinates to PDF coordinates
-                            float pdfY = pageHeight - element.getY() - element.getHeight();
-                            contentStream.drawImage(image, element.getX(), pdfY,
-                                    element.getWidth(), element.getHeight());
+
+                            // Convert screen coordinates to PDF coordinates
+                            float pdfX = (element.getX() - pdfOffsetX) / pdfScale;
+                            float pdfWidth = element.getWidth() / pdfScale;
+                            float pdfHeight = element.getHeight() / pdfScale;
+                            float pdfY = pageHeight - ((element.getY() - pdfOffsetY) / pdfScale) - pdfHeight;
+
+                            contentStream.drawImage(image, pdfX, pdfY, pdfWidth, pdfHeight);
                         }
                     }
 

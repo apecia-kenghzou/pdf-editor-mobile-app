@@ -40,7 +40,7 @@ public class SignatureView extends View {
         if (w > 0 && h > 0) {
             signatureBitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
             signatureCanvas = new Canvas(signatureBitmap);
-            signatureCanvas.drawColor(Color.WHITE);
+            signatureCanvas.drawColor(Color.TRANSPARENT);
         }
     }
 
@@ -80,7 +80,7 @@ public class SignatureView extends View {
 
     public void clear() {
         if (signatureCanvas != null) {
-            signatureCanvas.drawColor(Color.WHITE);
+            signatureCanvas.drawColor(Color.TRANSPARENT, android.graphics.PorterDuff.Mode.CLEAR);
             path.reset();
             invalidate();
         }
@@ -95,7 +95,9 @@ public class SignatureView extends View {
 
         for (int x = 0; x < signatureBitmap.getWidth(); x++) {
             for (int y = 0; y < signatureBitmap.getHeight(); y++) {
-                if (signatureBitmap.getPixel(x, y) != Color.WHITE) {
+                int pixel = signatureBitmap.getPixel(x, y);
+                // Check if pixel is not transparent
+                if (Color.alpha(pixel) != 0) {
                     return false;
                 }
             }
