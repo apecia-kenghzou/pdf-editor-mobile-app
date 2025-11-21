@@ -46,6 +46,7 @@ public class PdfEditorView extends View {
     private void init() {
         paint = new Paint();
         paint.setAntiAlias(true);
+        paint.setFilterBitmap(false);  // Disable bitmap filtering for sharp rendering
     }
 
     public void setPdfRenderer(PdfRenderer renderer) {
