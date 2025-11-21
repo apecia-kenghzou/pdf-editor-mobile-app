@@ -424,10 +424,9 @@ public class PdfEditorActivity extends AppCompatActivity implements PdfEditorVie
                     }
                 }
 
-                // Get PDF positioning info for coordinate conversion
-                float pdfOffsetX = pdfEditorView.getPdfOffsetX();
-                float pdfOffsetY = pdfEditorView.getPdfOffsetY();
-                float pdfScale = pdfEditorView.getPdfScale();
+                // Get view dimensions for coordinate conversion
+                final int viewWidth = pdfEditorView.getWidth();
+                final int viewHeight = pdfEditorView.getHeight();
 
                 // Add overlays to each page
                 for (int i = 0; i < document.getNumberOfPages(); i++) {
@@ -435,9 +434,22 @@ public class PdfEditorActivity extends AppCompatActivity implements PdfEditorVie
                     PDPageContentStream contentStream = new PDPageContentStream(
                             document, page, PDPageContentStream.AppendMode.APPEND, true, true);
 
-                    // Get page height for coordinate conversion
+                    // Get page dimensions
                     PDRectangle mediaBox = page.getMediaBox();
+                    float pageWidth = mediaBox.getWidth();
                     float pageHeight = mediaBox.getHeight();
+
+                    // Calculate scale and offset for this specific page
+                    // (same calculation as in PdfEditorView.renderPage)
+                    float scaleX = viewWidth / pageWidth;
+                    float scaleY = viewHeight / pageHeight;
+                    float pageScale = Math.min(scaleX, scaleY);
+
+                    int bitmapWidth = (int) (pageWidth * pageScale);
+                    int bitmapHeight = (int) (pageHeight * pageScale);
+
+                    float pageOffsetX = (viewWidth - bitmapWidth) / 2f;
+                    float pageOffsetY = (viewHeight - bitmapHeight) / 2f;
 
                     // Add text elements
                     List<TextElement> textElements = pageTextElements.get(i);
@@ -447,9 +459,9 @@ public class PdfEditorActivity extends AppCompatActivity implements PdfEditorVie
                             contentStream.beginText();
                             contentStream.setFont(font, element.getFontSize());
 
-                            // Convert screen coordinates to PDF coordinates
-                            float pdfX = (element.getX() - pdfOffsetX) / pdfScale;
-                            float pdfY = pageHeight - ((element.getY() - pdfOffsetY) / pdfScale);
+                            // Convert screen coordinates to PDF coordinates using this page's scale/offset
+                            float pdfX = (element.getX() - pageOffsetX) / pageScale;
+                            float pdfY = pageHeight - ((element.getY() - pageOffsetY) / pageScale);
 
                             contentStream.newLineAtOffset(pdfX, pdfY);
                             contentStream.showText(element.getText());
@@ -464,11 +476,11 @@ public class PdfEditorActivity extends AppCompatActivity implements PdfEditorVie
                             Bitmap bitmap = element.getSignatureBitmap();
                             PDImageXObject image = LosslessFactory.createFromImage(document, bitmap);
 
-                            // Convert screen coordinates to PDF coordinates
-                            float pdfX = (element.getX() - pdfOffsetX) / pdfScale;
-                            float pdfWidth = element.getWidth() / pdfScale;
-                            float pdfHeight = element.getHeight() / pdfScale;
-                            float pdfY = pageHeight - ((element.getY() - pdfOffsetY) / pdfScale) - pdfHeight;
+                            // Convert screen coordinates to PDF coordinates using this page's scale/offset
+                            float pdfX = (element.getX() - pageOffsetX) / pageScale;
+                            float pdfWidth = element.getWidth() / pageScale;
+                            float pdfHeight = element.getHeight() / pageScale;
+                            float pdfY = pageHeight - ((element.getY() - pageOffsetY) / pageScale) - pdfHeight;
 
                             contentStream.drawImage(image, pdfX, pdfY, pdfWidth, pdfHeight);
                         }
