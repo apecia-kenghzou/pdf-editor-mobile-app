@@ -342,6 +342,16 @@ public class PdfEditorView extends View {
         return pdfScale;
     }
 
+    public float getPdfCenterX() {
+        if (pageBitmap == null) return getWidth() / 2f;
+        return pdfOffsetX + pageBitmap.getWidth() / 2f;
+    }
+
+    public float getPdfCenterY() {
+        if (pageBitmap == null) return getHeight() / 2f;
+        return pdfOffsetY + pageBitmap.getHeight() / 2f;
+    }
+
     public void cleanup() {
         if (currentPage != null) {
             currentPage.close();

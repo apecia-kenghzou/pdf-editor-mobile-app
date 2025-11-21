@@ -241,9 +241,9 @@ public class PdfEditorActivity extends AppCompatActivity implements PdfEditorVie
                 if (selectedElement != null) {
                     pdfEditorView.updateSelectedTextElement(text, fontSize, fontType);
                 } else {
-                    // Position text at center of view
-                    float x = pdfEditorView.getWidth() / 2f;
-                    float y = pdfEditorView.getHeight() / 2f;
+                    // Position text at center of PDF
+                    float x = pdfEditorView.getPdfCenterX();
+                    float y = pdfEditorView.getPdfCenterY();
                     TextElement newElement = new TextElement(text, x, y, fontSize, fontType);
                     pdfEditorView.addTextElement(newElement);
                     updateEditToolbarVisibility();
@@ -263,9 +263,9 @@ public class PdfEditorActivity extends AppCompatActivity implements PdfEditorVie
         float targetWidth = 200;
         float targetHeight = targetWidth / aspectRatio;
 
-        // Add signature at center of the view
-        float x = pdfEditorView.getWidth() / 2f - targetWidth / 2;
-        float y = pdfEditorView.getHeight() / 2f - targetHeight / 2;
+        // Add signature at center of the PDF
+        float x = pdfEditorView.getPdfCenterX() - targetWidth / 2;
+        float y = pdfEditorView.getPdfCenterY() - targetHeight / 2;
         SignatureElement element = new SignatureElement(signature, x, y, targetWidth, targetHeight);
         pdfEditorView.addSignatureElement(element);
         updateEditToolbarVisibility();
