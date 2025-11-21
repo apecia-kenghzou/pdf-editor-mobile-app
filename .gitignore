@@ -1,0 +1,34 @@
+# Gradle files
+.gradle/
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+
+# IDE files
+.idea/
+*.iml
+.DS_Store
+
+# Xcode files
+iOS/build/
+iOS/*.xcworkspace/xcuserdata/
+iOS/*.xcodeproj/xcuserdata/
+iOS/*.xcodeproj/project.xcworkspace/xcuserdata/
+iOS/Pods/
+iOS/DerivedData/
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+*.xccheckout
+*.moved-aside
+*.xcuserstate
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Other
+*.log
+*.tmp
