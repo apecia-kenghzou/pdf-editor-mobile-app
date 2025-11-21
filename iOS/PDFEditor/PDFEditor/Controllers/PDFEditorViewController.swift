@@ -1,5 +1,6 @@
 import UIKit
 import PDFKit
+import UniformTypeIdentifiers
 
 class PDFEditorViewController: UIViewController {
 
@@ -19,10 +20,22 @@ class PDFEditorViewController: UIViewController {
         return view
     }()
 
+    // Edit toolbar (appears when element is selected)
+    private let editToolbar: UIView = {
+        let view = UIView()
+        view.backgroundColor = .systemBlue
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.isHidden = true
+        return view
+    }()
+
     private let addTextButton = UIButton(type: .system)
     private let addSignatureButton = UIButton(type: .system)
     private let removePageButton = UIButton(type: .system)
     private let saveButton = UIButton(type: .system)
+
+    private let editButton = UIButton(type: .system)
+    private let deleteButton = UIButton(type: .system)
 
     private let bottomToolbar: UIView = {
         let view = UIView()
@@ -59,9 +72,11 @@ class PDFEditorViewController: UIViewController {
         pdfView.editDelegate = self
         view.addSubview(pdfView)
 
-        // Setup toolbar
+        // Setup toolbars
         view.addSubview(toolbar)
+        view.addSubview(editToolbar)
         setupToolbarButtons()
+        setupEditToolbar()
 
         // Setup bottom toolbar
         view.addSubview(bottomToolbar)
@@ -72,6 +87,11 @@ class PDFEditorViewController: UIViewController {
             toolbar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             toolbar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             toolbar.heightAnchor.constraint(equalToConstant: 50),
+
+            editToolbar.topAnchor.constraint(equalTo: toolbar.bottomAnchor),
+            editToolbar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            editToolbar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            editToolbar.heightAnchor.constraint(equalToConstant: 50),
 
             pdfView.topAnchor.constraint(equalTo: toolbar.bottomAnchor),
             pdfView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -119,6 +139,31 @@ class PDFEditorViewController: UIViewController {
             stackView.leadingAnchor.constraint(equalTo: toolbar.leadingAnchor),
             stackView.trailingAnchor.constraint(equalTo: toolbar.trailingAnchor),
             stackView.bottomAnchor.constraint(equalTo: toolbar.bottomAnchor)
+        ])
+    }
+
+    private func setupEditToolbar() {
+        editButton.setTitle("Edit", for: .normal)
+        editButton.setTitleColor(.white, for: .normal)
+        editButton.titleLabel?.font = UIFont.systemFont(ofSize: 14)
+        editButton.addTarget(self, action: #selector(editTapped), for: .touchUpInside)
+
+        deleteButton.setTitle("Delete", for: .normal)
+        deleteButton.setTitleColor(.white, for: .normal)
+        deleteButton.titleLabel?.font = UIFont.systemFont(ofSize: 14)
+        deleteButton.addTarget(self, action: #selector(deleteTapped), for: .touchUpInside)
+
+        let stackView = UIStackView(arrangedSubviews: [editButton, deleteButton])
+        stackView.axis = .horizontal
+        stackView.distribution = .fillEqually
+        stackView.translatesAutoresizingMaskIntoConstraints = false
+
+        editToolbar.addSubview(stackView)
+        NSLayoutConstraint.activate([
+            stackView.topAnchor.constraint(equalTo: editToolbar.topAnchor),
+            stackView.leadingAnchor.constraint(equalTo: editToolbar.leadingAnchor),
+            stackView.trailingAnchor.constraint(equalTo: editToolbar.trailingAnchor),
+            stackView.bottomAnchor.constraint(equalTo: editToolbar.bottomAnchor)
         ])
     }
 
@@ -190,62 +235,22 @@ class PDFEditorViewController: UIViewController {
     @objc private func saveTapped() {
         saveCurrentPageElements()
 
-        guard let document = pdfDocument else { return }
+        let picker = UIDocumentPickerViewController(forExporting: [pdfURL], asCopy: true)
+        picker.delegate = self
+        present(picker, animated: true)
+    }
 
-        // Create a new document
-        let newDocument = PDFDocument()
-
-        // Copy pages that are not marked for removal
-        for i in 0..<document.pageCount {
-            if !pagesToRemove.contains(i), let page = document.page(at: i) {
-                newDocument.insert(page, at: newDocument.pageCount)
-            }
-        }
-
-        // Add overlays to each page
-        for i in 0..<newDocument.pageCount {
-            guard let page = newDocument.page(at: i) else { continue }
-
-            // Add text elements
-            if let textElements = pageTextElements[i] {
-                for element in textElements {
-                    let annotation = element.createPDFAnnotation(for: page)
-                    page.addAnnotation(annotation)
-                }
-            }
-
-            // Add signature elements
-            if let signatureElements = pageSignatureElements[i] {
-                for element in signatureElements {
-                    // Create image annotation
-                    let bounds = element.bounds
-                    let imageAnnotation = PDFAnnotation(bounds: bounds, forType: .stamp, withProperties: nil)
-
-                    // Unfortunately, PDFKit doesn't directly support custom images in annotations easily
-                    // So we'll use a workaround by drawing the image
-                    if let appearance = createAppearanceStream(with: element.image, bounds: bounds) {
-                        imageAnnotation.setValue(appearance, forAnnotationKey: .appearance)
-                    }
-
-                    page.addAnnotation(imageAnnotation)
-                }
-            }
-        }
-
-        // Save to new file
-        let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        let outputURL = documentsPath.appendingPathComponent("edited_pdf_\(Date().timeIntervalSince1970).pdf")
-
-        if newDocument.write(to: outputURL) {
-            showAlert(message: "PDF saved to: \(outputURL.lastPathComponent)")
-        } else {
-            showAlert(message: "Failed to save PDF")
+    @objc private func editTapped() {
+        if let textElement = pdfView.getSelectedTextElement() {
+            showTextEditDialog(element: textElement)
+        } else if let signatureElement = pdfView.getSelectedSignatureElement() {
+            showSignatureEditDialog(element: signatureElement)
         }
     }
 
-    private func createAppearanceStream(with image: UIImage, bounds: CGRect) -> String? {
-        // This is a simplified approach - in production you'd want more robust PDF appearance stream creation
-        return nil
+    @objc private func deleteTapped() {
+        pdfView.removeSelectedElement()
+        updateEditToolbarVisibility()
     }
 
     @objc private func prevPageTapped() {
@@ -293,15 +298,18 @@ class PDFEditorViewController: UIViewController {
 
         if let textElements = pageTextElements[pageIndex] {
             for element in textElements {
-                pdfView.addTextElement(element)
+                pdfView.textElements.append(element)
             }
         }
 
         if let signatureElements = pageSignatureElements[pageIndex] {
             for element in signatureElements {
-                pdfView.addSignatureElement(element)
+                pdfView.signatureElements.append(element)
             }
         }
+
+        pdfView.setNeedsDisplay()
+        updateEditToolbarVisibility()
     }
 
     private func updatePageLabel() {
@@ -310,6 +318,10 @@ class PDFEditorViewController: UIViewController {
               let pageCount = pdfDocument?.pageCount else { return }
 
         pageLabel.text = "\(pageIndex + 1) / \(pageCount)"
+    }
+
+    private func updateEditToolbarVisibility() {
+        editToolbar.isHidden = !pdfView.hasSelectedElement()
     }
 
     private func showTextEditDialog(element: TextElement?) {
@@ -322,7 +334,6 @@ class PDFEditorViewController: UIViewController {
             textField.text = element?.text
         }
 
-        // Font size
         alert.addTextField { textField in
             textField.placeholder = "Font size (e.g., 12)"
             textField.keyboardType = .numberPad
@@ -330,6 +341,15 @@ class PDFEditorViewController: UIViewController {
         }
 
         alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+
+        // Add delete button only when editing
+        if element != nil {
+            alert.addAction(UIAlertAction(title: "Delete", style: .destructive) { [weak self] _ in
+                self?.pdfView.removeSelectedElement()
+                self?.updateEditToolbarVisibility()
+            })
+        }
+
         alert.addAction(UIAlertAction(title: "OK", style: .default) { [weak self, weak alert] _ in
             guard let self = self,
                   let textField = alert?.textFields?[0],
@@ -341,12 +361,48 @@ class PDFEditorViewController: UIViewController {
             if let element = element {
                 self.pdfView.updateTextElement(element, text: text, fontSize: fontSize, fontName: "Helvetica")
             } else {
+                let center = self.pdfView.getPdfCenter()
                 let newElement = TextElement(text: text,
-                                           position: CGPoint(x: 100, y: 200),
+                                           position: center,
                                            fontSize: fontSize,
                                            fontName: "Helvetica")
                 self.pdfView.addTextElement(newElement)
             }
+            self.updateEditToolbarVisibility()
+        })
+
+        present(alert, animated: true)
+    }
+
+    private func showSignatureEditDialog(element: SignatureElement) {
+        let alert = UIAlertController(title: "Edit Signature",
+                                      message: nil,
+                                      preferredStyle: .alert)
+
+        alert.addTextField { textField in
+            textField.placeholder = "Width (e.g., 200)"
+            textField.keyboardType = .numberPad
+            textField.text = String(format: "%.0f", element.size.width)
+        }
+
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+
+        alert.addAction(UIAlertAction(title: "Delete", style: .destructive) { [weak self] _ in
+            self?.pdfView.removeSelectedElement()
+            self?.updateEditToolbarVisibility()
+        })
+
+        alert.addAction(UIAlertAction(title: "OK", style: .default) { [weak self, weak alert] _ in
+            guard let self = self,
+                  let widthField = alert?.textFields?[0],
+                  let widthText = widthField.text,
+                  let newWidth = CGFloat(widthText) else { return }
+
+            let aspectRatio = element.image.size.width / element.image.size.height
+            let newHeight = newWidth / aspectRatio
+            let newSize = CGSize(width: newWidth, height: newHeight)
+
+            self.pdfView.updateSignatureElement(element, size: newSize)
         })
 
         present(alert, animated: true)
@@ -363,15 +419,34 @@ extension PDFEditorViewController: EditablePDFViewDelegate {
     func editablePDFView(_ view: EditablePDFView, didDoubleTapTextElement element: TextElement) {
         showTextEditDialog(element: element)
     }
+
+    func editablePDFView(_ view: EditablePDFView, didDoubleTapSignatureElement element: SignatureElement) {
+        showSignatureEditDialog(element: element)
+    }
+
+    func editablePDFViewSelectionChanged(_ view: EditablePDFView) {
+        updateEditToolbarVisibility()
+    }
 }
 
 extension PDFEditorViewController: SignatureViewControllerDelegate {
     func signatureViewController(_ controller: SignatureViewController, didSelectSignature image: UIImage) {
-        let center = CGPoint(x: pdfView.bounds.midX, y: pdfView.bounds.midY)
-        let size = CGSize(width: 200, height: 100)
+        let center = pdfView.getPdfCenter()
+        let aspectRatio = image.size.width / image.size.height
+        let targetWidth: CGFloat = 200
+        let targetHeight = targetWidth / aspectRatio
+        let size = CGSize(width: targetWidth, height: targetHeight)
         let position = CGPoint(x: center.x - size.width / 2, y: center.y - size.height / 2)
 
         let signatureElement = SignatureElement(image: image, position: position, size: size)
         pdfView.addSignatureElement(signatureElement)
+        updateEditToolbarVisibility()
+    }
+}
+
+extension PDFEditorViewController: UIDocumentPickerDelegate {
+    func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
+        // Document saved successfully
+        showAlert(message: "PDF saved successfully!")
     }
 }
