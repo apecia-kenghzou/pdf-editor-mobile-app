@@ -199,6 +199,7 @@ public class PdfEditorActivity extends AppCompatActivity implements PdfEditorVie
         TextView tvFontSize = dialogView.findViewById(R.id.tvFontSize);
         Spinner spinnerFontType = dialogView.findViewById(R.id.spinnerFontType);
         Button btnCancel = dialogView.findViewById(R.id.btnCancel);
+        Button btnDelete = dialogView.findViewById(R.id.btnDelete);
         Button btnOk = dialogView.findViewById(R.id.btnOk);
 
         // Setup font type spinner
@@ -213,6 +214,9 @@ public class PdfEditorActivity extends AppCompatActivity implements PdfEditorVie
             etTextContent.setText(selectedElement.getText());
             seekBarFontSize.setProgress((int) selectedElement.getFontSize());
             tvFontSize.setText(selectedElement.getFontSize() + " pt");
+        } else {
+            // Hide delete button when adding new text
+            btnDelete.setVisibility(View.GONE);
         }
 
         seekBarFontSize.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
@@ -231,6 +235,12 @@ public class PdfEditorActivity extends AppCompatActivity implements PdfEditorVie
         AlertDialog dialog = builder.create();
 
         btnCancel.setOnClickListener(v -> dialog.dismiss());
+
+        btnDelete.setOnClickListener(v -> {
+            pdfEditorView.deleteSelectedElement();
+            updateEditToolbarVisibility();
+            dialog.dismiss();
+        });
 
         btnOk.setOnClickListener(v -> {
             String text = etTextContent.getText().toString();
@@ -290,6 +300,7 @@ public class PdfEditorActivity extends AppCompatActivity implements PdfEditorVie
         SeekBar seekBarWidth = dialogView.findViewById(R.id.seekBarWidth);
         TextView tvWidth = dialogView.findViewById(R.id.tvWidth);
         Button btnCancel = dialogView.findViewById(R.id.btnCancel);
+        Button btnDelete = dialogView.findViewById(R.id.btnDelete);
         Button btnOk = dialogView.findViewById(R.id.btnOk);
 
         // Set current values
@@ -312,6 +323,13 @@ public class PdfEditorActivity extends AppCompatActivity implements PdfEditorVie
 
         AlertDialog dialog = builder.create();
         btnCancel.setOnClickListener(v -> dialog.dismiss());
+
+        btnDelete.setOnClickListener(v -> {
+            pdfEditorView.deleteSelectedElement();
+            updateEditToolbarVisibility();
+            dialog.dismiss();
+        });
+
         btnOk.setOnClickListener(v -> {
             float newWidth = seekBarWidth.getProgress();
             float aspectRatio = element.getSignatureBitmap().getWidth() / (float) element.getSignatureBitmap().getHeight();
