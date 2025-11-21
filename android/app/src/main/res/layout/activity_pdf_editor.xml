@@ -46,19 +46,19 @@
     </LinearLayout>
 
     <!-- PDF Viewer/Editor Area -->
-    <ScrollView
+    <FrameLayout
         android:id="@+id/pdfContainer"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_below="@id/toolbar"
         android:layout_above="@id/bottomToolbar"
-        android:background="#FFFFFF">
+        android:background="#EEEEEE">
 
         <com.pdfeditor.PdfEditorView
             android:id="@+id/pdfEditorView"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content" />
-    </ScrollView>
+            android:layout_height="match_parent" />
+    </FrameLayout>
 
     <!-- Bottom Toolbar -->
     <LinearLayout

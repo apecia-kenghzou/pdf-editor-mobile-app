@@ -212,7 +212,10 @@ public class PdfEditorActivity extends AppCompatActivity {
                 if (selectedElement != null) {
                     pdfEditorView.updateSelectedTextElement(text, fontSize, fontType);
                 } else {
-                    TextElement newElement = new TextElement(text, 100, 200, fontSize, fontType);
+                    // Position text at center of view
+                    float x = pdfEditorView.getWidth() / 2f;
+                    float y = pdfEditorView.getHeight() / 2f;
+                    TextElement newElement = new TextElement(text, x, y, fontSize, fontType);
                     pdfEditorView.addTextElement(newElement);
                 }
                 dialog.dismiss();
@@ -225,7 +228,7 @@ public class PdfEditorActivity extends AppCompatActivity {
     }
 
     private void addSignatureToPage(Bitmap signature) {
-        // Add signature at center of the page
+        // Add signature at center of the view
         float x = pdfEditorView.getWidth() / 2f - 100;
         float y = pdfEditorView.getHeight() / 2f - 50;
         SignatureElement element = new SignatureElement(signature, x, y, 200, 100);

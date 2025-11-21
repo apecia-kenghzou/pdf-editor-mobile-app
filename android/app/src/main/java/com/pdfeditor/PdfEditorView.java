@@ -30,6 +30,11 @@ public class PdfEditorView extends View {
     private float lastTouchX;
     private float lastTouchY;
 
+    // PDF positioning
+    private float pdfOffsetX = 0;
+    private float pdfOffsetY = 0;
+    private float pdfScale = 1.0f;
+
     public PdfEditorView(Context context, AttributeSet attrs) {
         super(context, attrs);
         init();
@@ -58,29 +63,44 @@ public class PdfEditorView extends View {
         int viewWidth = getWidth();
         int viewHeight = getHeight();
 
-        // If view not measured yet, use page dimensions
+        // If view not measured yet, wait for onSizeChanged
         if (viewWidth == 0 || viewHeight == 0) {
-            viewWidth = currentPage.getWidth() * 2;
-            viewHeight = currentPage.getHeight() * 2;
+            return;
         }
 
-        // Calculate scale to fit the page to view width
+        // Calculate scale to fit PDF within view bounds
         float pageWidth = currentPage.getWidth();
         float pageHeight = currentPage.getHeight();
-        float scale = viewWidth / pageWidth;
 
-        int bitmapWidth = viewWidth;
-        int bitmapHeight = (int) (pageHeight * scale);
+        float scaleX = viewWidth / pageWidth;
+        float scaleY = viewHeight / pageHeight;
+        pdfScale = Math.min(scaleX, scaleY);
+
+        int bitmapWidth = (int) (pageWidth * pdfScale);
+        int bitmapHeight = (int) (pageHeight * pdfScale);
+
+        // Center the PDF in the view
+        pdfOffsetX = (viewWidth - bitmapWidth) / 2f;
+        pdfOffsetY = (viewHeight - bitmapHeight) / 2f;
 
         pageBitmap = Bitmap.createBitmap(bitmapWidth, bitmapHeight, Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(pageBitmap);
         canvas.drawColor(Color.WHITE);
 
         currentPage.render(pageBitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY);
-
-        // Request layout to adjust view size
-        requestLayout();
         invalidate();
+    }
+
+    @Override
+    protected void onSizeChanged(int w, int h, int oldw, int oldh) {
+        super.onSizeChanged(w, h, oldw, oldh);
+        // Re-render PDF when view size changes
+        if (pdfRenderer != null && currentPage != null) {
+            int currentIndex = currentPageIndex;
+            currentPage.close();
+            currentPage = null;
+            showPage(currentIndex);
+        }
     }
 
     public int getCurrentPageIndex() {
@@ -116,23 +136,12 @@ public class PdfEditorView extends View {
     }
 
     @Override
-    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
-
-        // Set minimum height to fit the PDF bitmap
-        if (pageBitmap != null) {
-            int width = MeasureSpec.getSize(widthMeasureSpec);
-            int height = pageBitmap.getHeight();
-            setMeasuredDimension(width, height);
-        }
-    }
-
-    @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
 
         if (pageBitmap != null) {
-            canvas.drawBitmap(pageBitmap, 0, 0, paint);
+            // Draw PDF bitmap centered with offset
+            canvas.drawBitmap(pageBitmap, pdfOffsetX, pdfOffsetY, paint);
         }
 
         // Draw text elements
@@ -180,7 +189,21 @@ public class PdfEditorView extends View {
                 selectedTextElement = null;
                 selectedSignatureElement = null;
 
-                for (TextElement element : textElements) {
+                // Check signatures first (usually on top)
+                for (int i = signatureElements.size() - 1; i >= 0; i--) {
+                    SignatureElement element = signatureElements.get(i);
+                    if (element.contains(x, y)) {
+                        selectedSignatureElement = element;
+                        lastTouchX = x;
+                        lastTouchY = y;
+                        invalidate();
+                        return true;
+                    }
+                }
+
+                // Then check text elements
+                for (int i = textElements.size() - 1; i >= 0; i--) {
+                    TextElement element = textElements.get(i);
                     if (element.contains(x, y)) {
                         selectedTextElement = element;
                         lastTouchX = x;
@@ -190,16 +213,10 @@ public class PdfEditorView extends View {
                     }
                 }
 
-                for (SignatureElement element : signatureElements) {
-                    if (element.contains(x, y)) {
-                        selectedSignatureElement = element;
-                        lastTouchX = x;
-                        lastTouchY = y;
-                        invalidate();
-                        return true;
-                    }
-                }
-                break;
+                // Store touch position even if no element selected
+                lastTouchX = x;
+                lastTouchY = y;
+                return true;
 
             case MotionEvent.ACTION_MOVE:
                 if (selectedTextElement != null) {
@@ -222,10 +239,11 @@ public class PdfEditorView extends View {
                 break;
 
             case MotionEvent.ACTION_UP:
+                // Keep selection active after touch up
                 break;
         }
 
-        return super.onTouchEvent(event);
+        return true;
     }
 
     public TextElement getSelectedTextElement() {
