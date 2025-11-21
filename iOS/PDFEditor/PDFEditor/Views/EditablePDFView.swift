@@ -128,19 +128,30 @@ class EditablePDFView: PDFView {
         if touch.tapCount == 2 {
             if let element = selectedTextElement {
                 editDelegate?.editablePDFView(self, didDoubleTapTextElement: element)
+            } else if let element = selectedSignatureElement {
+                editDelegate?.editablePDFView(self, didDoubleTapSignatureElement: element)
             }
         }
+
+        // Notify selection changed
+        editDelegate?.editablePDFViewSelectionChanged(self)
 
         super.touchesEnded(touches, with: event)
     }
 
     func addTextElement(_ element: TextElement) {
         textElements.append(element)
+        selectedTextElement = element
+        selectedSignatureElement = nil
+        editDelegate?.editablePDFViewSelectionChanged(self)
         setNeedsDisplay()
     }
 
     func addSignatureElement(_ element: SignatureElement) {
         signatureElements.append(element)
+        selectedSignatureElement = element
+        selectedTextElement = nil
+        editDelegate?.editablePDFViewSelectionChanged(self)
         setNeedsDisplay()
     }
 
@@ -177,8 +188,33 @@ class EditablePDFView: PDFView {
         selectedSignatureElement = nil
         setNeedsDisplay()
     }
+
+    func hasSelectedElement() -> Bool {
+        return selectedTextElement != nil || selectedSignatureElement != nil
+    }
+
+    func getSelectedSignatureElement() -> SignatureElement? {
+        return selectedSignatureElement
+    }
+
+    func updateSignatureElement(_ element: SignatureElement, size: CGSize) {
+        element.updateSize(size)
+        setNeedsDisplay()
+    }
+
+    func getPdfCenter() -> CGPoint {
+        guard let currentPage = self.currentPage else {
+            return CGPoint(x: bounds.midX, y: bounds.midY)
+        }
+
+        let pageBounds = currentPage.bounds(for: .mediaBox)
+        let convertedBounds = convert(pageBounds, from: currentPage)
+        return CGPoint(x: convertedBounds.midX, y: convertedBounds.midY)
+    }
 }
 
 protocol EditablePDFViewDelegate: AnyObject {
     func editablePDFView(_ view: EditablePDFView, didDoubleTapTextElement element: TextElement)
+    func editablePDFView(_ view: EditablePDFView, didDoubleTapSignatureElement element: SignatureElement)
+    func editablePDFViewSelectionChanged(_ view: EditablePDFView)
 }

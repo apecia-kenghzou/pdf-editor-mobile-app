@@ -33,4 +33,9 @@ class SignatureElement {
         size.height *= scale
         updateBounds()
     }
+
+    func updateSize(_ newSize: CGSize) {
+        size = newSize
+        updateBounds()
+    }
 }
