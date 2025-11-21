@@ -29,11 +29,14 @@ public class PdfEditorView extends View {
     private SignatureElement selectedSignatureElement;
     private float lastTouchX;
     private float lastTouchY;
+    private long lastTapTime = 0;
 
     // PDF positioning
     private float pdfOffsetX = 0;
     private float pdfOffsetY = 0;
     private float pdfScale = 1.0f;
+
+    private OnElementEventListener eventListener;
 
     public PdfEditorView(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -113,11 +116,15 @@ public class PdfEditorView extends View {
 
     public void addTextElement(TextElement element) {
         textElements.add(element);
+        selectedTextElement = element;
+        selectedSignatureElement = null;
         invalidate();
     }
 
     public void addSignatureElement(SignatureElement element) {
         signatureElements.add(element);
+        selectedSignatureElement = element;
+        selectedTextElement = null;
         invalidate();
     }
 
@@ -132,7 +139,35 @@ public class PdfEditorView extends View {
     public void clearElementsForCurrentPage() {
         textElements.clear();
         signatureElements.clear();
+        selectedTextElement = null;
+        selectedSignatureElement = null;
         invalidate();
+    }
+
+    public void deleteSelectedElement() {
+        if (selectedTextElement != null) {
+            textElements.remove(selectedTextElement);
+            selectedTextElement = null;
+            invalidate();
+        } else if (selectedSignatureElement != null) {
+            signatureElements.remove(selectedSignatureElement);
+            selectedSignatureElement = null;
+            invalidate();
+        }
+    }
+
+    public boolean hasSelectedElement() {
+        return selectedTextElement != null || selectedSignatureElement != null;
+    }
+
+    public void setOnElementEventListener(OnElementEventListener listener) {
+        this.eventListener = listener;
+    }
+
+    public interface OnElementEventListener {
+        void onElementDoubleTapped(TextElement element);
+        void onElementDoubleTapped(SignatureElement element);
+        void onSelectionChanged();
     }
 
     @Override
@@ -186,6 +221,7 @@ public class PdfEditorView extends View {
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
                 // Check if touching an existing element
+                boolean hadSelection = selectedTextElement != null || selectedSignatureElement != null;
                 selectedTextElement = null;
                 selectedSignatureElement = null;
 
@@ -196,6 +232,19 @@ public class PdfEditorView extends View {
                         selectedSignatureElement = element;
                         lastTouchX = x;
                         lastTouchY = y;
+
+                        // Check for double tap
+                        long currentTime = System.currentTimeMillis();
+                        if (currentTime - lastTapTime < 300) {
+                            if (eventListener != null) {
+                                eventListener.onElementDoubleTapped(element);
+                            }
+                        }
+                        lastTapTime = currentTime;
+
+                        if (eventListener != null) {
+                            eventListener.onSelectionChanged();
+                        }
                         invalidate();
                         return true;
                     }
@@ -208,6 +257,19 @@ public class PdfEditorView extends View {
                         selectedTextElement = element;
                         lastTouchX = x;
                         lastTouchY = y;
+
+                        // Check for double tap
+                        long currentTime = System.currentTimeMillis();
+                        if (currentTime - lastTapTime < 300) {
+                            if (eventListener != null) {
+                                eventListener.onElementDoubleTapped(element);
+                            }
+                        }
+                        lastTapTime = currentTime;
+
+                        if (eventListener != null) {
+                            eventListener.onSelectionChanged();
+                        }
                         invalidate();
                         return true;
                     }
@@ -216,6 +278,11 @@ public class PdfEditorView extends View {
                 // Store touch position even if no element selected
                 lastTouchX = x;
                 lastTouchY = y;
+
+                if (hadSelection && eventListener != null) {
+                    eventListener.onSelectionChanged();
+                }
+                invalidate();
                 return true;
 
             case MotionEvent.ACTION_MOVE:
@@ -248,6 +315,10 @@ public class PdfEditorView extends View {
 
     public TextElement getSelectedTextElement() {
         return selectedTextElement;
+    }
+
+    public SignatureElement getSelectedSignatureElement() {
+        return selectedSignatureElement;
     }
 
     public void updateSelectedTextElement(String text, float fontSize, String fontType) {

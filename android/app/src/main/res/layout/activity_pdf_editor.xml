@@ -45,12 +45,40 @@
             android:textSize="12sp" />
     </LinearLayout>
 
+    <!-- Edit Toolbar (shown when element is selected) -->
+    <LinearLayout
+        android:id="@+id/editToolbar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="8dp"
+        android:background="@android:color/holo_blue_light"
+        android:layout_below="@id/toolbar"
+        android:visibility="gone">
+
+        <Button
+            android:id="@+id/btnEdit"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Edit"
+            android:textSize="12sp" />
+
+        <Button
+            android:id="@+id/btnDelete"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Delete"
+            android:textSize="12sp" />
+    </LinearLayout>
+
     <!-- PDF Viewer/Editor Area -->
     <FrameLayout
         android:id="@+id/pdfContainer"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_below="@id/toolbar"
+        android:layout_below="@id/editToolbar"
         android:layout_above="@id/bottomToolbar"
         android:background="#EEEEEE">
 

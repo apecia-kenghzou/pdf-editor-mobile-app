@@ -41,7 +41,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class PdfEditorActivity extends AppCompatActivity {
+public class PdfEditorActivity extends AppCompatActivity implements PdfEditorView.OnElementEventListener {
 
     private PdfEditorView pdfEditorView;
     private Button btnAddText;
@@ -51,12 +51,16 @@ public class PdfEditorActivity extends AppCompatActivity {
     private Button btnPrevPage;
     private Button btnNextPage;
     private TextView tvPageNumber;
+    private View editToolbar;
+    private Button btnEdit;
+    private Button btnDelete;
 
     private PdfRenderer pdfRenderer;
     private Uri pdfUri;
     private File tempPdfFile;
 
     private ActivityResultLauncher<Intent> signatureLauncher;
+    private ActivityResultLauncher<Intent> saveFileLauncher;
 
     // Store elements for each page
     private Map<Integer, List<TextElement>> pageTextElements = new HashMap<>();
@@ -76,6 +80,9 @@ public class PdfEditorActivity extends AppCompatActivity {
         btnPrevPage = findViewById(R.id.btnPrevPage);
         btnNextPage = findViewById(R.id.btnNextPage);
         tvPageNumber = findViewById(R.id.tvPageNumber);
+        editToolbar = findViewById(R.id.editToolbar);
+        btnEdit = findViewById(R.id.btnEdit);
+        btnDelete = findViewById(R.id.btnDelete);
 
         pdfUri = getIntent().getData();
 
@@ -93,6 +100,21 @@ public class PdfEditorActivity extends AppCompatActivity {
                         }
                     }
                 });
+
+        // Register save file picker
+        saveFileLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
+                        Uri uri = result.getData().getData();
+                        if (uri != null) {
+                            savePdfToUri(uri);
+                        }
+                    }
+                });
+
+        // Set element event listener
+        pdfEditorView.setOnElementEventListener(this);
 
         loadPdf();
         setupListeners();
@@ -139,7 +161,14 @@ public class PdfEditorActivity extends AppCompatActivity {
 
         btnRemovePage.setOnClickListener(v -> removeCurrentPage());
 
-        btnSave.setOnClickListener(v -> savePdf());
+        btnSave.setOnClickListener(v -> showSaveDialog());
+
+        btnEdit.setOnClickListener(v -> editSelectedElement());
+
+        btnDelete.setOnClickListener(v -> {
+            pdfEditorView.deleteSelectedElement();
+            updateEditToolbarVisibility();
+        });
 
         btnPrevPage.setOnClickListener(v -> {
             saveCurrentPageElements();
@@ -217,6 +246,7 @@ public class PdfEditorActivity extends AppCompatActivity {
                     float y = pdfEditorView.getHeight() / 2f;
                     TextElement newElement = new TextElement(text, x, y, fontSize, fontType);
                     pdfEditorView.addTextElement(newElement);
+                    updateEditToolbarVisibility();
                 }
                 dialog.dismiss();
             } else {
@@ -228,11 +258,102 @@ public class PdfEditorActivity extends AppCompatActivity {
     }
 
     private void addSignatureToPage(Bitmap signature) {
+        // Calculate size maintaining aspect ratio
+        float aspectRatio = (float) signature.getWidth() / signature.getHeight();
+        float targetWidth = 200;
+        float targetHeight = targetWidth / aspectRatio;
+
         // Add signature at center of the view
-        float x = pdfEditorView.getWidth() / 2f - 100;
-        float y = pdfEditorView.getHeight() / 2f - 50;
-        SignatureElement element = new SignatureElement(signature, x, y, 200, 100);
+        float x = pdfEditorView.getWidth() / 2f - targetWidth / 2;
+        float y = pdfEditorView.getHeight() / 2f - targetHeight / 2;
+        SignatureElement element = new SignatureElement(signature, x, y, targetWidth, targetHeight);
         pdfEditorView.addSignatureElement(element);
+        updateEditToolbarVisibility();
+    }
+
+    private void editSelectedElement() {
+        TextElement textElement = pdfEditorView.getSelectedTextElement();
+        SignatureElement signatureElement = pdfEditorView.getSelectedSignatureElement();
+
+        if (textElement != null) {
+            showEditTextDialog(textElement);
+        } else if (signatureElement != null) {
+            showEditSignatureDialog(signatureElement);
+        }
+    }
+
+    private void showEditSignatureDialog(SignatureElement element) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_signature_edit, null);
+        builder.setView(dialogView);
+
+        SeekBar seekBarWidth = dialogView.findViewById(R.id.seekBarWidth);
+        TextView tvWidth = dialogView.findViewById(R.id.tvWidth);
+        Button btnCancel = dialogView.findViewById(R.id.btnCancel);
+        Button btnOk = dialogView.findViewById(R.id.btnOk);
+
+        // Set current values
+        seekBarWidth.setProgress((int) element.getWidth());
+        tvWidth.setText((int) element.getWidth() + " px");
+
+        seekBarWidth.setMax(500);
+        seekBarWidth.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                tvWidth.setText(progress + " px");
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {}
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {}
+        });
+
+        AlertDialog dialog = builder.create();
+        btnCancel.setOnClickListener(v -> dialog.dismiss());
+        btnOk.setOnClickListener(v -> {
+            float newWidth = seekBarWidth.getProgress();
+            float aspectRatio = element.getSignatureBitmap().getWidth() / (float) element.getSignatureBitmap().getHeight();
+            float newHeight = newWidth / aspectRatio;
+            element.setWidth(newWidth);
+            element.setHeight(newHeight);
+            pdfEditorView.invalidate();
+            dialog.dismiss();
+        });
+
+        dialog.show();
+    }
+
+    private void updateEditToolbarVisibility() {
+        editToolbar.setVisibility(pdfEditorView.hasSelectedElement() ? View.VISIBLE : View.GONE);
+    }
+
+    @Override
+    public void onElementDoubleTapped(TextElement element) {
+        showEditTextDialog(element);
+    }
+
+    @Override
+    public void onElementDoubleTapped(SignatureElement element) {
+        showEditSignatureDialog(element);
+    }
+
+    @Override
+    public void onSelectionChanged() {
+        updateEditToolbarVisibility();
+    }
+
+    private void showEditTextDialog(TextElement element) {
+        showAddTextDialog();
+    }
+
+    private void showSaveDialog() {
+        Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("application/pdf");
+        intent.putExtra(Intent.EXTRA_TITLE, "edited_pdf_" + System.currentTimeMillis() + ".pdf");
+        saveFileLauncher.launch(intent);
     }
 
     private void removeCurrentPage() {
@@ -267,16 +388,19 @@ public class PdfEditorActivity extends AppCompatActivity {
         List<TextElement> textElements = pageTextElements.get(currentPage);
         if (textElements != null) {
             for (TextElement element : textElements) {
-                pdfEditorView.addTextElement(element);
+                pdfEditorView.getTextElements().add(element);
             }
         }
 
         List<SignatureElement> signatureElements = pageSignatureElements.get(currentPage);
         if (signatureElements != null) {
             for (SignatureElement element : signatureElements) {
-                pdfEditorView.addSignatureElement(element);
+                pdfEditorView.getSignatureElements().add(element);
             }
         }
+
+        pdfEditorView.invalidate();
+        updateEditToolbarVisibility();
     }
 
     private void updatePageNumber() {
@@ -285,7 +409,7 @@ public class PdfEditorActivity extends AppCompatActivity {
         tvPageNumber.setText(current + " / " + total);
     }
 
-    private void savePdf() {
+    private void savePdfToUri(Uri uri) {
         saveCurrentPageElements();
 
         new Thread(() -> {
@@ -341,14 +465,25 @@ public class PdfEditorActivity extends AppCompatActivity {
                     contentStream.close();
                 }
 
-                // Save to new file
-                File outputFile = new File(getExternalFilesDir(null),
-                        "edited_pdf_" + System.currentTimeMillis() + ".pdf");
-                document.save(outputFile);
+                // Save to temp file first, then copy to selected location
+                File tempOutput = new File(getCacheDir(), "temp_output.pdf");
+                document.save(tempOutput);
                 document.close();
 
+                // Copy to user-selected location
+                try (InputStream in = new java.io.FileInputStream(tempOutput);
+                     java.io.OutputStream out = getContentResolver().openOutputStream(uri)) {
+                    byte[] buffer = new byte[1024];
+                    int length;
+                    while ((length = in.read(buffer)) > 0) {
+                        out.write(buffer, 0, length);
+                    }
+                }
+
+                tempOutput.delete();
+
                 runOnUiThread(() -> {
-                    Toast.makeText(this, "PDF saved to: " + outputFile.getAbsolutePath(),
+                    Toast.makeText(this, "PDF saved successfully!",
                             Toast.LENGTH_LONG).show();
                 });
 
