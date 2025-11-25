@@ -3,7 +3,6 @@ package com.pdfeditor;
 import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -13,15 +12,13 @@ import android.widget.Toast;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
 
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader;
 
 public class MainActivity extends AppCompatActivity {
 
-    private static final int PERMISSION_REQUEST_CODE = 100;
     private ActivityResultLauncher<Intent> pdfPickerLauncher;
+    private ActivityResultLauncher<String> requestPermissionLauncher;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -32,6 +29,17 @@ public class MainActivity extends AppCompatActivity {
         PDFBoxResourceLoader.init(getApplicationContext());
 
         Button btnSelectPdf = findViewById(R.id.btnSelectPdf);
+
+        // Register permission request launcher (modern approach)
+        requestPermissionLauncher = registerForActivityResult(
+                new ActivityResultContracts.RequestPermission(),
+                isGranted -> {
+                    if (isGranted) {
+                        openPdfPicker();
+                    } else {
+                        Toast.makeText(this, "Permission denied. Cannot access PDF files.", Toast.LENGTH_LONG).show();
+                    }
+                });
 
         // Register PDF picker
         pdfPickerLauncher = registerForActivityResult(
@@ -47,49 +55,19 @@ public class MainActivity extends AppCompatActivity {
                 });
 
         btnSelectPdf.setOnClickListener(v -> {
-            if (checkPermissions()) {
+            // For Android 13+, we don't need storage permission for ACTION_OPEN_DOCUMENT
+            // For older versions, we request permission
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                // Android 13+ - no permission needed for ACTION_OPEN_DOCUMENT
                 openPdfPicker();
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                // Android 6-12 - request READ_EXTERNAL_STORAGE
+                requestPermissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE);
             } else {
-                requestPermissions();
+                // Below Android 6 - permissions granted at install time
+                openPdfPicker();
             }
         });
-    }
-
-    private boolean checkPermissions() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            return ContextCompat.checkSelfPermission(this,
-                    Manifest.permission.READ_MEDIA_IMAGES) == PackageManager.PERMISSION_GRANTED;
-        } else {
-            return ContextCompat.checkSelfPermission(this,
-                    Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED;
-        }
-    }
-
-    private void requestPermissions() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            ActivityCompat.requestPermissions(this,
-                    new String[]{Manifest.permission.READ_MEDIA_IMAGES},
-                    PERMISSION_REQUEST_CODE);
-        } else {
-            ActivityCompat.requestPermissions(this,
-                    new String[]{
-                            Manifest.permission.READ_EXTERNAL_STORAGE,
-                            Manifest.permission.WRITE_EXTERNAL_STORAGE
-                    },
-                    PERMISSION_REQUEST_CODE);
-        }
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == PERMISSION_REQUEST_CODE) {
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                openPdfPicker();
-            } else {
-                Toast.makeText(this, "Permission denied. Cannot access PDF files.", Toast.LENGTH_SHORT).show();
-            }
-        }
     }
 
     private void openPdfPicker() {
